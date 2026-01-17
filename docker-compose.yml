@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - база данных
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: price_tracker
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret123
+
+  # Redis - кеш
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
