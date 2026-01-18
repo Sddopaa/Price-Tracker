@@ -1,16 +1,14 @@
 package sddoppa_project.price_tracker.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.time.LocalDateTime;
-import jakarta.validation.constraints.Pattern;
 
 @Entity
 @Table(name = "users", indexes = {
-    @Index(name = "idx_user_email", columnList = "email"),               // Для поиска по email
-    @Index(name = "idx_user_telegram", columnList = "telegram_chat_id"), // Для поиска по Telegram
-    @Index(name = "idx_user_username", columnList = "username")          // Для поиска по username
+        @Index(name = "idx_user_email", columnList = "email"),
+        @Index(name = "idx_user_telegram", columnList = "telegram_chat_id"),
+        @Index(name = "idx_user_username", columnList = "username")
 })
 @Data
 public class User {
@@ -20,15 +18,12 @@ public class User {
     private Long id;
 
     @Column(name = "email", unique = true, nullable = false, length = 100)
-    @Pattern(regexp = "^[A-Za-z0-9+_.-]+@(.+)$", message = "Неверный формат email")
     private String email;
 
     @Column(name = "password", nullable = false, length = 100)
-    @Size(min = 3, message = "Пароль должен быть минимум 3 символа")
     private String password;
 
     @Column(name = "username", unique = true, nullable = false, length = 50)
-    @Size(min = 3, message = "Имя пользователя должно быть минимум 3 символа")
     private String username;
 
     @Column(name = "telegram_chat_id", length = 50)
