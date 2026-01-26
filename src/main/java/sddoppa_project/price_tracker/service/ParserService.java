@@ -1,13 +1,15 @@
 package sddoppa_project.price_tracker.service;
 
 import sddoppa_project.price_tracker.entity.Product;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.io.IOException;
 
 @Service
 public class ParserService {
@@ -22,11 +24,16 @@ public class ParserService {
         Product.StoreType storeType = detectStoreType(url);
         product.setStoreType(storeType);
 
-        // Загружаем HTML страницу через Jsoup
-        Document doc = Jsoup.connect(url)
-                .userAgent("Mozilla/5.0") // Притворяемся браузером
-                .timeout(30000) // Ждем максимум 30 секунд
-                .get();
+        // Загружаем HTML страницу через Jsoup (с заголовками и execute())
+        Connection.Response response = Jsoup.connect(url)
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .referrer("https://www.google.com")
+                .header("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+                .timeout(120000)
+                .execute();
+
+        Document doc = response.parse();
 
         // Выбираем нужный парсер для магазина
         switch (storeType) {
@@ -34,10 +41,10 @@ public class ParserService {
                 parseDNS(doc, product); // Парсим DNS
                 break;
             case MVIDEO:
-                parseMVideo(doc, product); // Парсим MVideo
+                parseMVideo(doc, product); // TODO: реализовать
                 break;
             case CITILINK:
-                parseCitilink(doc, product); // Парсим Citilink
+                parseCitilink(doc, product); // TODO: реализовать
                 break;
             case WILDBERRIES:
                 parseWildberries(doc, product); // TODO: реализовать
@@ -69,77 +76,43 @@ public class ParserService {
     // Парсер для DNS-shop.ru
     private void parseDNS(Document doc, Product product) {
         try {
-            // Ищем название товара (класс .product-card-top__name на DNS)
+            // Ищем название товара
             Element nameElement = doc.selectFirst(".product-card-top__name");
             if (nameElement != null) {
-                product.setName(nameElement.text().trim()); // Берем текст, обрезаем пробелы
+                product.setName(nameElement.text().trim());
             }
 
-            // Ищем цену (класс .product-buy__price на DNS)
+            // Ищем цену товара
             Element priceElement = doc.selectFirst(".product-buy__price");
             if (priceElement != null) {
-                String priceText = priceElement.text(); // Получаем текст "85 999 ₽"
-                priceText = priceText.replaceAll("[^0-9]", ""); // Убираем все кроме цифр
+                String priceText = priceElement.text();
+                priceText = priceText.replaceAll("[^0-9]", ""); // Убираем всё кроме цифр
                 if (!priceText.isEmpty()) {
-                    // Преобразуем строку в BigDecimal (лучше для денег чем double)
                     BigDecimal price = new BigDecimal(priceText);
-                    product.setCurrentPrice(price); // Сохраняем цену
+                    product.setCurrentPrice(price);
                 }
             }
         } catch (Exception e) {
-            System.err.println("Ошибка парсинга DNS: " + e.getMessage()); // Простой вывод ошибки
+            System.err.println("Ошибка парсинга DNS: " + e.getMessage());
         }
     }
 
-    // Парсер для MVideo.ru
+    // Парсер для MVideo (пока заглушка)
     private void parseMVideo(Document doc, Product product) {
-        try {
-            // На MVideo название в теге h1
-            Element nameElement = doc.selectFirst("h1");
-            if (nameElement != null) {
-                product.setName(nameElement.text().trim());
-            }
-
-            // Цена на MVideo в классе .price__main-value
-            Element priceElement = doc.selectFirst(".price__main-value");
-            if (priceElement != null) {
-                String priceText = priceElement.text();
-                priceText = priceText.replaceAll("[^0-9]", "");
-                if (!priceText.isEmpty()) {
-                    product.setCurrentPrice(new BigDecimal(priceText));
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Ошибка парсинга MVideo: " + e.getMessage());
-        }
+        System.out.println("Парсинг MVideo еще не реализован");
     }
 
-    // Парсер для Citilink.ru
+    // Парсер для Citilink (пока заглушка)
     private void parseCitilink(Document doc, Product product) {
-        try {
-            Element nameElement = doc.selectFirst("h1");
-            if (nameElement != null) {
-                product.setName(nameElement.text().trim());
-            }
-
-            Element priceElement = doc.selectFirst(".ProductHeader__price-default_current-price");
-            if (priceElement != null) {
-                String priceText = priceElement.text();
-                priceText = priceText.replaceAll("[^0-9]", "");
-                if (!priceText.isEmpty()) {
-                    product.setCurrentPrice(new BigDecimal(priceText));
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Ошибка парсинга Citilink: " + e.getMessage());
-        }
+        System.out.println("Парсинг Citilink еще не реализован");
     }
 
-    // Заглушки для других магазинов (пока не реализованы)
+    // Заглушка для Wildberries
     private void parseWildberries(Document doc, Product product) {
         System.out.println("Парсинг Wildberries еще не реализован");
     }
 
+    // Заглушка для Ozon
     private void parseOzon(Document doc, Product product) {
         System.out.println("Парсинг Ozon еще не реализован");
     }
@@ -153,7 +126,7 @@ public class ParserService {
                 Element element = doc.selectFirst(selector);
                 if (element != null) {
                     product.setName(element.text().trim());
-                    break; // Нашли - выходим
+                    break;
                 }
             }
 
@@ -165,7 +138,7 @@ public class ParserService {
                     String priceText = element.text().replaceAll("[^0-9]", "");
                     if (!priceText.isEmpty()) {
                         product.setCurrentPrice(new BigDecimal(priceText));
-                        break; // Нашли - выходим
+                        break;
                     }
                 }
             }

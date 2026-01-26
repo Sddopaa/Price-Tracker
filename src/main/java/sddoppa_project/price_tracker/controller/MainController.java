@@ -5,14 +5,34 @@ import org.springframework.web.bind.annotation.*;
 import sddoppa_project.price_tracker.service.ProductService;
 
 @RestController
-@RequestMapping("/api/products")
-public class ProductController {
+@RequestMapping("/api")
+public class MainController {
 
     @Autowired
     private ProductService productService;
 
+    // ===========================
+    // 1) TEST endpoints
+    // ===========================
+    @GetMapping("/test")
+    public String test() {
+        return "Application is running. Time: " + java.time.LocalDateTime.now();
+    }
+
+    @GetMapping("/test-parse")
+    public String testParse(@RequestParam(required = false) String url) {
+        if (url == null || url.isEmpty()) {
+            return "Please provide url parameter: /api/test-parse?url=https://www.dns-shop.ru/...";
+        }
+        return "Will parse: " + url;
+    }
+
+    // ===========================
+    // 2) PRODUCT endpoints
+    // ===========================
+    // Добавить товар
     // GET: http://localhost:8080/api/products/add?url=https://www.dns-shop.ru/...
-    @GetMapping("/add")
+    @GetMapping("/products/add")
     public String addProduct(@RequestParam String url) {
         try {
             var product = productService.addProduct(url);
@@ -24,8 +44,9 @@ public class ProductController {
         }
     }
 
+    // Получить товар по ID
     // GET: http://localhost:8080/api/products/1
-    @GetMapping("/{id}")
+    @GetMapping("/products/{id}")
     public String getProduct(@PathVariable Long id) {
         var product = productService.getProductById(id);
         if (product.isPresent()) {
@@ -38,8 +59,9 @@ public class ProductController {
         return "Product not found";
     }
 
+    // Получить все товары
     // GET: http://localhost:8080/api/products/all
-    @GetMapping("/all")
+    @GetMapping("/products/all")
     public String getAllProducts() {
         var products = productService.getAllProducts();
         if (products.isEmpty()) {

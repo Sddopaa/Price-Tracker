@@ -1,28 +1,34 @@
 package sddoppa_project.price_tracker.service;
 
+// Импорт сущностей Product и PriceHistory
 import sddoppa_project.price_tracker.entity.Product;
 import sddoppa_project.price_tracker.entity.PriceHistory;
+
+// Импорт репозиториев
 import sddoppa_project.price_tracker.repository.ProductRepository;
 import sddoppa_project.price_tracker.repository.PriceHistoryRepository;
+
+// Spring-аннотации
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Optional;
 
-@Service
+import java.io.IOException; // Исключение на случай ошибок парсинга
+import java.math.BigDecimal; // Тип для цены
+import java.time.LocalDateTime; // Тип для времени
+import java.util.Optional; // Обёртка, чтобы не было null
+
+@Service // Помечаем класс как сервис Spring (bean)
 public class ProductService {
 
-    @Autowired
-    private ProductRepository productRepository; // Репозиторий для работы с товарами
+    @Autowired // Внедряем ProductRepository (автоматически)
+    private ProductRepository productRepository;
 
-    @Autowired
-    private PriceHistoryRepository priceHistoryRepository; // Репозиторий для истории цен
+    @Autowired // Внедряем PriceHistoryRepository
+    private PriceHistoryRepository priceHistoryRepository;
 
-    @Autowired
-    private ParserService parserService; // Наш парсер для загрузки цен
+    @Autowired // Внедряем ParserService (наш парсер)
+    private ParserService parserService;
 
     /**
      * Добавляет новый товар для отслеживания
@@ -30,25 +36,31 @@ public class ProductService {
      * @return Сохраненный товар
      * @throws IOException Если не удалось загрузить страницу
      */
-    @Transactional // Все операции в одной транзакции
+    @Transactional // Все операции в методе выполняются в одной транзакции
     public Product addProduct(String url) throws IOException {
-        // 1. Проверяем, может товар уже есть в базе
+
+        // Ищем товар по URL в базе (если уже есть)
         Product existingProduct = productRepository.findByUrl(url);
+
+        // Если товар уже есть
         if (existingProduct != null) {
-            // Товар уже есть - просто обновляем цену
+            // Обновляем его цену (парсим сайт и сохраняем новую цену)
             updateProductPrice(existingProduct);
+
+            // Возвращаем существующий товар (уже обновлённый)
             return existingProduct;
         }
 
-        // 2. Товара нет - парсим его с сайта
+        // Если товара нет в базе — парсим его с сайта
         Product parsedProduct = parserService.parseProduct(url);
 
-        // 3. Сохраняем товар в базу данных
+        // Сохраняем распарсенный товар в базе
         Product savedProduct = productRepository.save(parsedProduct);
 
-        // 4. Сохраняем текущую цену в историю
+        // Сохраняем текущую цену товара в историю
         savePriceToHistory(savedProduct);
 
+        // Возвращаем сохранённый товар
         return savedProduct;
     }
 
@@ -57,16 +69,17 @@ public class ProductService {
      * @param productId ID товара
      * @return true если цена изменилась
      */
-    @Transactional
+    @Transactional // Тоже в транзакции
     public boolean updateProductPrice(Long productId) {
-        // 1. Находим товар в базе
-        Optional<Product> productOpt = productRepository.findById(productId);
-        if (productOpt.isEmpty()) {
-            return false; // Товар не найден
-        }
 
-        Product product = productOpt.get();
-        return updateProductPrice(product);
+        // Ищем товар по ID
+        Optional<Product> productOpt = productRepository.findById(productId);
+
+        // Если товара нет — возвращаем false
+        if (productOpt.isEmpty()) return false;
+
+        // Если товар есть — обновляем цену (внутренний метод)
+        return updateProductPrice(productOpt.get());
     }
 
     /**
@@ -74,33 +87,44 @@ public class ProductService {
      */
     private boolean updateProductPrice(Product product) {
         try {
-            // 1. Запоминаем старую цену
+            // Сохраняем старую цену (до обновления)
             BigDecimal oldPrice = product.getCurrentPrice();
 
-            // 2. Парсим актуальную цену с сайта
+            // Парсим актуальную цену с сайта
             Product parsedProduct = parserService.parseProduct(product.getUrl());
+
+            // Берём новую цену из распарсенного товара
             BigDecimal newPrice = parsedProduct.getCurrentPrice();
 
-            // 3. Если цена не изменилась - ничего не делаем
+            // Если цена не изменилась или новая цена null — ничего не делаем
             if (newPrice == null || newPrice.equals(oldPrice)) {
                 return false;
             }
 
-            // 4. Обновляем товар
+            // Устанавливаем новую цену в товар
             product.setCurrentPrice(newPrice);
-            product.setLastChecked(LocalDateTime.now());
-            product.setName(parsedProduct.getName()); // На случай если изменилось название
 
+            // Обновляем дату последней проверки
+            product.setLastChecked(LocalDateTime.now());
+
+            // Обновляем имя товара на случай изменения названия
+            product.setName(parsedProduct.getName());
+
+            // Сохраняем обновлённый товар в базе
             productRepository.save(product);
 
-            // 5. Сохраняем новую цену в историю
+            // Сохраняем новую цену в историю
             savePriceToHistory(product);
 
-            return true; // Цена изменилась
+            // Возвращаем true — цена изменилась
+            return true;
 
-        } catch (IOException e) {
+        } catch (IOException e) { // Если парсер не смог загрузить страницу
+            // Печатаем ошибку в консоль
             System.err.println("Не удалось обновить цену для товара ID=" + product.getId() +
                     ", URL=" + product.getUrl() + ", ошибка: " + e.getMessage());
+
+            // Возвращаем false — цена не обновилась
             return false;
         }
     }
@@ -109,15 +133,22 @@ public class ProductService {
      * Сохраняет текущую цену товара в историю
      */
     private void savePriceToHistory(Product product) {
-        if (product.getCurrentPrice() == null) {
-            return; // Если цены нет - не сохраняем
-        }
 
+        // Если цена не задана — не сохраняем
+        if (product.getCurrentPrice() == null) return;
+
+        // Создаём объект истории цены
         PriceHistory priceHistory = new PriceHistory();
-        priceHistory.setProductId(product.getId());
-        priceHistory.setPrice(product.getCurrentPrice());
-        // checkedAt установится автоматически в @PrePersist
 
+        // Привязываем историю к товару (важно!)
+        priceHistory.setProduct(product);
+
+        // Устанавливаем цену
+        priceHistory.setPrice(product.getCurrentPrice());
+
+        // Время checkedAt установится автоматически в @PrePersist
+
+        // Сохраняем запись истории в базе
         priceHistoryRepository.save(priceHistory);
     }
 
@@ -125,6 +156,7 @@ public class ProductService {
      * Получает товар по ID
      */
     public Optional<Product> getProductById(Long id) {
+        // Ищем товар в репозитории
         return productRepository.findById(id);
     }
 
@@ -132,6 +164,7 @@ public class ProductService {
      * Получает все товары
      */
     public java.util.List<Product> getAllProducts() {
+        // Возвращаем список всех товаров
         return productRepository.findAll();
     }
 
@@ -139,6 +172,7 @@ public class ProductService {
      * Получает историю цен для товара
      */
     public java.util.List<PriceHistory> getPriceHistory(Long productId) {
+        // Получаем список истории по ID товара
         return priceHistoryRepository.findByProductIdOrderByCheckedAtDesc(productId);
     }
 
@@ -146,6 +180,7 @@ public class ProductService {
      * Получает последнюю цену из истории
      */
     public Optional<PriceHistory> getLatestPrice(Long productId) {
+        // Получаем последнюю запись из истории
         return Optional.ofNullable(
                 priceHistoryRepository.findFirstByProductIdOrderByCheckedAtDesc(productId)
         );
@@ -155,10 +190,17 @@ public class ProductService {
      * Удаляет товар
      */
     public boolean deleteProduct(Long productId) {
+        // Проверяем, существует ли товар
         if (productRepository.existsById(productId)) {
+
+            // Удаляем товар по ID
             productRepository.deleteById(productId);
+
+            // Возвращаем true — удалено
             return true;
         }
+
+        // Если товара нет — возвращаем false
         return false;
     }
 }
