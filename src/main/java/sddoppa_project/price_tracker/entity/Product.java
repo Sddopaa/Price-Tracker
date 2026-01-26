@@ -20,6 +20,9 @@ public class Product {
     @Column(length = 500) // Название товара
     private String name;
 
+    @Column(length = 500) // путь к фотке товара
+    private String imageUrl;
+
     @Column(name = "current_price", precision = 10, scale = 2) // Текущая цена товара
     private BigDecimal currentPrice;
 
@@ -32,6 +35,8 @@ public class Product {
     @Enumerated(EnumType.STRING) // Enum хранится в БД как строка
     @Column(name = "store_type", nullable = false, length = 30) // Тип магазина
     private StoreType storeType;
+
+
 
     @OneToMany(
             mappedBy = "product", // Связь описана в PriceHistory.product
@@ -66,6 +71,8 @@ public class Product {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public StoreType getStoreType() { return storeType; }
     public List<PriceHistory> getPriceHistory() { return priceHistory; }
+    public String getImageUrl() { return imageUrl; }
+
 
     // Setters
     public void setId(Long id) { this.id = id; }
@@ -76,4 +83,5 @@ public class Product {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setStoreType(StoreType storeType) { this.storeType = storeType; }
     public void setPriceHistory(List<PriceHistory> priceHistory) { this.priceHistory = priceHistory; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

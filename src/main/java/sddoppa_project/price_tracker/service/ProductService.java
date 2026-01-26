@@ -119,8 +119,8 @@ public class ProductService {
             // Возвращаем true — цена изменилась
             return true;
 
-        } catch (IOException e) { // Если парсер не смог загрузить страницу
-            // Печатаем ошибку в консоль
+        } catch (Exception e) { // Если парсер не смог загрузить страницу
+            // Печатаем ошибку в консольц
             System.err.println("Не удалось обновить цену для товара ID=" + product.getId() +
                     ", URL=" + product.getUrl() + ", ошибка: " + e.getMessage());
 
