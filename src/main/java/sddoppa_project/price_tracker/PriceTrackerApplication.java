@@ -8,6 +8,15 @@ public class PriceTrackerApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(PriceTrackerApplication.class, args);
+        System.out.println("""
+            ╔══════════════════════════════════════════╗
+            ║  "He who possesses the Spear of Destiny  ║
+            ║   holds the fate of the world in his     ║
+            ║   hands."                                ║
+            ║                                          ║
+            ║            Price Tracker v1.0            ║
+            ╚══════════════════════════════════════════╝
+        """);
 	}
 
 }
